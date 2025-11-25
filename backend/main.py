@@ -1,21 +1,3 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-
-from .config import settings
-from .database import init_db, close_db
-from .logger import setup_logger
-from .exceptions import exception_handlers
-from .models import HealthCheck
-
-# Import routers
-from .routers import transactions, vehicles, projects, workers, anomalies, stats, auth
-
-# Setup logger
-logger = setup_logger(
     level=settings.log_level,
     log_format=settings.log_format,
     log_file=settings.log_file
@@ -68,7 +50,12 @@ if settings.rate_limit_enabled and limiter:
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins.split(';') if isinstance(settings.allowed_origins, str) else settings.allowed_origins,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",  # Frontend is running on 3001
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,8 +69,6 @@ for exc_class, handler in exception_handlers.items():
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
 app.include_router(transactions.router, prefix=settings.api_v1_prefix)
 app.include_router(vehicles.router, prefix=settings.api_v1_prefix)
-app.include_router(projects.router, prefix=settings.api_v1_prefix)
-app.include_router(workers.router, prefix=settings.api_v1_prefix)
 app.include_router(anomalies.router, prefix=settings.api_v1_prefix)
 app.include_router(stats.router, prefix=settings.api_v1_prefix)
 

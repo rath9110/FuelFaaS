@@ -1,7 +1,5 @@
-from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import declarative_base
 from typing import AsyncGenerator
 from .config import settings
 from .logger import get_logger
@@ -11,25 +9,18 @@ logger = get_logger(__name__)
 # Base class for all models
 Base = declarative_base()
 
-# Sync engine (for migrations and legacy code)
-engine = create_engine(
-    settings.database_url,
-    echo=settings.db_echo,
-    pool_pre_ping=True,
-    connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},
-)
+# Database configuration - using simple SQLite
+DATABASE_URL = "sqlite+aiosqlite:///./fuelguard.db"
 
-# Async engine (for main application)
+# Create async engine
 async_engine = create_async_engine(
-    settings.database_url_async,
-    echo=settings.db_echo,
+    DATABASE_URL,
+    echo=False,
     pool_pre_ping=True,
-    poolclass=StaticPool if settings.database_url.startswith("sqlite") else None,
-    connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},
+    connect_args={"check_same_thread": False}
 )
 
-# Session factories
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Session factory
 AsyncSessionLocal = async_sessionmaker(
     async_engine,
     class_=AsyncSession,

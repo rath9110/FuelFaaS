@@ -8,8 +8,6 @@ const navigation = [
     { name: 'Transactions', href: '/dashboard/transactions', icon: '⛽' },
     { name: 'Anomalies', href: '/dashboard/anomalies', icon: '🚨' },
     { name: 'Vehicles', href: '/dashboard/vehicles', icon: '🚗' },
-    { name: 'Projects', href: '/dashboard/projects', icon: '🏗️' },
-    { name: 'Workers', href: '/dashboard/workers', icon: '👷' },
 ];
 
 export default function Sidebar() {
