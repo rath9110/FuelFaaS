@@ -68,7 +68,7 @@ if settings.rate_limit_enabled and limiter:
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins,
+    allow_origins=settings.allowed_origins.split(';') if isinstance(settings.allowed_origins, str) else settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -16,11 +16,11 @@ class Settings(BaseSettings):
     app_name: str = "FuelGuard AI"
     app_version: str = "1.0.0"
     debug: bool = False
-    environment: str = "development"  # development, staging, production
+    environment: str = "development"
     
     # API
     api_v1_prefix: str = "/api/v1"
-    allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:3001"]
+    allowed_origins: str = "http://localhost:3000;http://localhost:8001"
     
     # Database
     database_url: str = "sqlite:///./fuelguard.db"
