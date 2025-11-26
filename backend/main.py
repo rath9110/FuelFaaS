@@ -12,7 +12,7 @@ from .exceptions import exception_handlers
 from .models import HealthCheck
 
 # Import routers
-from .routers import transactions, vehicles, anomalies, stats, auth
+from .routers import transactions, vehicles, anomalies, stats, auth, providers
 
 # Setup logger
 logger = setup_logger(
@@ -89,6 +89,7 @@ app.include_router(transactions.router, prefix=settings.api_v1_prefix)
 app.include_router(vehicles.router, prefix=settings.api_v1_prefix)
 app.include_router(anomalies.router, prefix=settings.api_v1_prefix)
 app.include_router(stats.router, prefix=settings.api_v1_prefix)
+app.include_router(providers.router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/", response_model=dict)

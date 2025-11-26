@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, ForeignKey, Enum, Text, JSON
+from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, ForeignKey, Enum, Text, JSON, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -45,7 +45,7 @@ class UserDB(Base):
     full_name = Column(String(255))
     hashed_password = Column(String(255), nullable=False)
     role = Column(Enum(UserRole), default=UserRole.VIEWER, nullable=False)
-    company_id = Column(String(100), index=True)  # For multi-tenancy
+    company_id = Column(String(100), index=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -67,7 +67,6 @@ class VehicleDB(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relationships
     project = relationship("ProjectDB", back_populates="vehicles")
     transactions = relationship("TransactionDB", back_populates="vehicle")
 
@@ -89,7 +88,6 @@ class ProjectDB(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relationships
     vehicles = relationship("VehicleDB", back_populates="project")
     workers = relationship("WorkerDB", secondary="worker_projects", back_populates="projects")
 
@@ -101,19 +99,17 @@ class WorkerDB(Base):
     id = Column(Integer, primary_key=True, index=True)
     worker_id = Column(String(50), unique=True, index=True, nullable=False)
     name = Column(String(255), nullable=False)
-    schedule_start = Column(String(5), nullable=False)  # HH:MM format
-    schedule_end = Column(String(5), nullable=False)    # HH:MM format
+    schedule_start = Column(String(5), nullable=False)
+    schedule_end = Column(String(5), nullable=False)
     company_id = Column(String(100), index=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relationships
     projects = relationship("ProjectDB", secondary="worker_projects", back_populates="workers")
     transactions = relationship("TransactionDB", back_populates="driver")
 
 
-# Association table for many-to-many relationship
 class WorkerProjectDB(Base):
     """Association table for workers and projects."""
     __tablename__ = "worker_projects"
@@ -144,8 +140,8 @@ class TransactionDB(Base):
     station_lon = Column(Float, nullable=False)
     company_id = Column(String(100), index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    provider_sync_id = Column(Integer, ForeignKey("provider_sync_logs.id"), nullable=True)
     
-    # Relationships
     vehicle = relationship("VehicleDB", back_populates="transactions")
     driver = relationship("WorkerDB", back_populates="transactions")
     anomaly = relationship("AnomalyDB", back_populates="transaction", uselist=False)
@@ -160,15 +156,67 @@ class AnomalyDB(Base):
     is_anomalous = Column(Boolean, default=True, nullable=False)
     severity = Column(Enum(SeverityLevel), nullable=False, index=True)
     risk_score = Column(Integer, nullable=False)
-    reasons = Column(JSON, nullable=False)  # Store as JSON array
+    reasons = Column(JSON, nullable=False)
     reviewed = Column(Boolean, default=False)
     reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
     review_notes = Column(Text, nullable=True)
-    status = Column(String(50), default="pending")  # pending, confirmed, false_positive, resolved
+    status = Column(String(50), default="pending")
     company_id = Column(String(100), index=True)
     detected_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relationships
     transaction = relationship("TransactionDB", back_populates="anomaly")
     reviewer = relationship("UserDB")
+    
+    __table_args__ = (
+        Index('idx_anomaly_severity', 'severity'),
+        Index('idx_anomaly_reviewed', 'reviewed'),
+        Index('idx_anomaly_detected_at', 'detected_at'),
+    )
+
+
+class ProviderCredentialDB(Base):
+    """Provider credentials for fuel card integrations."""
+    __tablename__ = "provider_credentials"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    provider_name = Column(String(50), nullable=False)
+    credentials_encrypted = Column(Text, nullable=False)
+    is_active = Column(Boolean, default=True)
+    last_validated = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    sync_logs = relationship("ProviderSyncLogDB", back_populates="credential")
+    
+    __table_args__ = (
+        Index('idx_provider_name', 'provider_name'),
+        Index('idx_provider_active', 'is_active'),
+    )
+
+
+class ProviderSyncLogDB(Base):
+    """Log of provider sync operations."""
+    __tablename__ = "provider_sync_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    credential_id = Column(Integer, ForeignKey("provider_credentials.id"), nullable=False)
+    provider_name = Column(String(50), nullable=False)
+    status = Column(String(20), nullable=False)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    transactions_fetched = Column(Integer, default=0)
+    transactions_created = Column(Integer, default=0)
+    transactions_skipped = Column(Integer, default=0)
+    error_message = Column(Text, nullable=True)
+    sync_range_start = Column(DateTime(timezone=True), nullable=True)
+    sync_range_end = Column(DateTime(timezone=True), nullable=True)
+    
+    credential = relationship("ProviderCredentialDB", back_populates="sync_logs")
+    
+    __table_args__ = (
+        Index('idx_sync_provider', 'provider_name'),
+        Index('idx_sync_status', 'status'),
+        Index('idx_sync_started', 'started_at'),
+    )
