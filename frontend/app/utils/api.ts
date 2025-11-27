@@ -16,15 +16,9 @@ const API_VERSION = '/api/v1';
 
 class ApiClient {
     private baseUrl: string;
-    private token: string | null = null;
 
     constructor() {
         this.baseUrl = `${API_BASE_URL}${API_VERSION}`;
-
-        // Load token from localStorage if available
-        if (typeof window !== 'undefined') {
-            this.token = localStorage.getItem('access_token');
-        }
     }
 
     private get Headers(): HeadersInit {
@@ -77,7 +71,7 @@ class ApiClient {
             body: JSON.stringify(credentials),
         });
 
-        this.token = response.access_token;
+        // Store tokens in localStorage
         if (typeof window !== 'undefined') {
             localStorage.setItem('access_token', response.access_token);
             localStorage.setItem('refresh_token', response.refresh_token);
@@ -87,7 +81,6 @@ class ApiClient {
     }
 
     logout(): void {
-        this.token = null;
         if (typeof window !== 'undefined') {
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
