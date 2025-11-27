@@ -27,13 +27,17 @@ class ApiClient {
         }
     }
 
-    private getHeaders(): HeadersInit {
+    private get Headers(): HeadersInit {
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
         };
 
-        if (this.token) {
-            headers['Authorization'] = `Bearer ${this.token}`;
+        // Always get fresh token from localStorage
+        if (typeof window !== 'undefined') {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
         }
 
         return headers;
@@ -47,7 +51,7 @@ class ApiClient {
         const config: RequestInit = {
             ...options,
             headers: {
-                ...this.getHeaders(),
+                ...this.Headers,
                 ...options.headers,
             },
         };
