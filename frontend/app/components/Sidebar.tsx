@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '../contexts/AuthContext';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '📊' },
@@ -12,6 +13,13 @@ const navigation = [
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
+    const { user, logout } = useAuth();
+
+    const handleLogout = () => {
+        logout();
+        router.push('/login');
+    };
 
     return (
         <aside style={{
@@ -43,7 +51,7 @@ export default function Sidebar() {
             </div>
 
             {/* Navigation */}
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)', flex: 1 }}>
                 {navigation.map((item) => {
                     const isActive = pathname === item.href;
                     return (
@@ -80,6 +88,51 @@ export default function Sidebar() {
                     );
                 })}
             </nav>
+
+            {/* User Info & Logout */}
+            <div style={{
+                borderTop: '1px solid var(--border-color)',
+                paddingTop: 'var(--spacing-md)',
+                marginTop: 'auto'
+            }}>
+                {user && (
+                    <div style={{ marginBottom: 'var(--spacing-sm)' }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)' }}>
+                            {user.full_name || user.username}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                            {user.role}
+                        </div>
+                    </div>
+                )}
+                <button
+                    onClick={handleLogout}
+                    style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--spacing-sm)',
+                        padding: 'var(--spacing-sm) var(--spacing-md)',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        color: 'var(--danger)',
+                        background: 'transparent',
+                        border: '1px solid var(--border-color)',
+                        cursor: 'pointer',
+                        transition: 'all var(--transition-fast)'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                    }}
+                >
+                    <span>🚪</span>
+                    Logout
+                </button>
+            </div>
         </aside>
     );
 }
